@@ -180,7 +180,10 @@ def main():
         help="Any OpenAI compatible server chat endpoint. Like chat.example.com, excluding 'v1/chat' etc.",
     )
     parser.add_argument(
-        "--model-frame-color", type=str, help="Frame color of Large language Model"
+        "--model-frame-color",
+        type=str,
+        default="white",
+        help="Frame color of Large language Model",
     )
     parser.add_argument(
         "--topk",
