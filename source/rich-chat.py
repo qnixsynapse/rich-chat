@@ -31,7 +31,7 @@ def handle_console_input() -> str:
     i = 1
     while True:
         if i == 1:
-            line = input("Enter prompt(double enter to input):")
+            line = input("Enter prompt(double enter to input): ")
             i = i + 1
         else:
             line = input("")
