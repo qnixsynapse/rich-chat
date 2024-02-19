@@ -4,13 +4,11 @@ import os
 
 import requests
 from prompt_toolkit import PromptSession
+from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
-
-# TODO: Encapsulate the session instance, ideally within the `conchat` class.
-session = PromptSession()
 
 
 def remove_lines_console(num_lines):
@@ -30,8 +28,8 @@ def estimate_lines(text):
     return line_count
 
 
-def handle_console_input() -> str:
-    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True)
+def handle_console_input(session: PromptSession) -> str:
+    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True).strip()
 
 
 class conchat:
@@ -59,6 +57,9 @@ class conchat:
         self.model_name = ""
 
         self.console = Console()
+
+        # TODO: Gracefully handle user input history file.
+        self.session = PromptSession(history=FileHistory(".rich-chat.history"))
 
     def chat_generator(self, prompt):
         endpoint = self.serveraddr + "/v1/chat/completions"
@@ -149,7 +150,7 @@ class conchat:
         self.model_name = self.get_model_name()
         while True:
             try:
-                user_m = handle_console_input()
+                user_m = handle_console_input(self.session)
                 remove_lines_console(estimate_lines(text=user_m))
                 self.console.print(
                     Panel(Markdown(user_m), title="HUMAN", title_align="left")
