@@ -37,9 +37,12 @@ ricchat [options]
 These options are currently inexhaustible. More will be added later.
 
 ## Roadmap
-[] Expand the options
-[] Proper RAG support(Both internet and documents)
-[] Multimodal
+
+- Expand the options
+
+- Proper RAG support(Both internet and documents)
+
+- Multimodal
 
 Please stay tuned for updates. 
 Contributions are surely welcome!!
