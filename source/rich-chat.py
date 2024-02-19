@@ -1,12 +1,12 @@
 import argparse
-import os
 import json
+import os
+
 import requests
 from rich.console import Console
-from rich.markdown import Markdown
-
-from rich.panel import Panel
 from rich.live import Live
+from rich.markdown import Markdown
+from rich.panel import Panel
 
 
 def remove_lines_console(num_lines):
@@ -100,8 +100,8 @@ class conchat:
                     chunk = json.loads(chunk)
                     # if "content" in chunk:
                     yield chunk
-        except Exception:
-            print("Server not available!")
+        except Exception as e:
+            print(f"GeneratorError: {e}")
 
     def health_checker(self):
         try:
@@ -112,8 +112,8 @@ class conchat:
             ), "Unable to reach server! Please check if server is running or your Internet connection is working or not."
             status = json.loads(response.content.decode("utf-8"))["status"]
             return status
-        except Exception:
-            print("Server not available!")
+        except Exception as e:
+            print(f"HealthError: {e}")
 
     def get_model_name(self):
         try:
@@ -122,8 +122,8 @@ class conchat:
             assert response.status_code == 200, "Server not reachable!"
             data = json.loads(response.content.decode("utf-8"))[0]["model"]
             return data
-        except Exception:
-            print("Server not available!")
+        except Exception as e:
+            print(f"SlotsError: {e}")
 
     def handle_streaming(self, prompt):
         text = ""
@@ -135,7 +135,7 @@ class conchat:
                 # print(token)
                 if "content" in token["choices"][0]["delta"]:
                     text = text + token["choices"][0]["delta"]["content"]
-                if token["choices"][0]["finish_reason"] != None:
+                if token["choices"][0]["finish_reason"] is not None:
                     # finish_reason = token["choices"][0]["finish_reason"]
                     block = ""
                 markdown = Markdown(text + block)
