@@ -135,7 +135,7 @@ class conchat:
                 # print(token)
                 if "content" in token["choices"][0]["delta"]:
                     text = text + token["choices"][0]["delta"]["content"]
-                if token["choices"][0]["finish_reason"] != None:
+                if token["choices"][0]["finish_reason"] is not None:
                     # finish_reason = token["choices"][0]["finish_reason"]
                     block = ""
                 markdown = Markdown(text + block)
