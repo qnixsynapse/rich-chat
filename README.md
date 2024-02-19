@@ -14,18 +14,13 @@ To use Rich Chat, first install the required dependencies:
 pip install -r requirements.txt
 ```
 
-You can also use pip to install rich chat:
-
-```bash
-pip install richchat
-```
 
 ## Usage
 
 Run the program with the following command line options:
 
 ```bash
-ricchat [options] 
+python source/rich-chat.py [options] 
 ```
 
 ### Commandline Options
