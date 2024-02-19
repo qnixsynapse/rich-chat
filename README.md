@@ -3,6 +3,9 @@
 Rich Chat is a Python console application designed to provide an engaging and visually appealing chat experience on Unix-like consoles or Terminals. This app utilizes the **rich** text library to render attractive text, creating a chat interface reminiscent of instant messaging applications.
 Rich Chat offers an interactive console experience with a visually appealing chat interface using the rich text library.
 
+![](https://github.com/akarshanbiswas/rich-chat/blob/main/resources/screenshot.gif)
+
+
 ## Installation
 
 To use Rich Chat, first install the required dependencies:
