@@ -3,10 +3,14 @@ import json
 import os
 
 import requests
+from prompt_toolkit import PromptSession
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
+
+# TODO: Encapsulate the session instance, ideally within the `conchat` class.
+session = PromptSession()
 
 
 def remove_lines_console(num_lines):
@@ -27,18 +31,7 @@ def estimate_lines(text):
 
 
 def handle_console_input() -> str:
-    txt = ""
-    i = 1
-    while True:
-        if i == 1:
-            line = input("Enter prompt(double enter to input): ")
-            i = i + 1
-        else:
-            line = input("")
-        if not line:
-            break
-        txt = txt + line + "\n"
-    return txt.strip()
+    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True)
 
 
 class conchat:
@@ -156,15 +149,12 @@ class conchat:
         self.model_name = self.get_model_name()
         while True:
             try:
-
                 user_m = handle_console_input()
                 remove_lines_console(estimate_lines(text=user_m))
                 self.console.print(
                     Panel(Markdown(user_m), title="HUMAN", title_align="left")
                 )
                 self.handle_streaming(prompt=user_m)
-                print()
-                print()
 
             except KeyboardInterrupt:
                 exit()
