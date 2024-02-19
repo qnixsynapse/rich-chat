@@ -156,7 +156,9 @@ class conchat:
                 )
                 self.handle_streaming(prompt=user_m)
 
-            except KeyboardInterrupt:
+            # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
+            # Adding EOFError prevents an exception and gracefully exits.
+            except (KeyboardInterrupt, EOFError):
                 exit()
 
 
