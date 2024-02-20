@@ -1,3 +1,4 @@
 *.backup
 *.history
 *.log
+*.json
