@@ -43,7 +43,7 @@ class chathistory:
             self.file_path = file_path
 
         # Set chat history and session
-        file_history_path = Path.cwd() / f"{self.file_path.name}.history"
+        file_history_path = Path.cwd() / f"{self.file_path.stem}.history"
         self.session = PromptSession(history=FileHistory(file_history_path))
 
         # Set chat messages
