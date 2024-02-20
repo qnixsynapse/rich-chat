@@ -43,6 +43,7 @@ class conchat:
         stream: bool = True,
         cache_prompt: bool = True,
         model_frame_color: str = "red",
+        system_prompt: str = "",
     ) -> None:
         self.model_frame_color = model_frame_color
         self.serveraddr = server_addr
@@ -55,6 +56,10 @@ class conchat:
         self.headers = {"Content-Type": "application/json"}
         self.chat_history = []
         self.model_name = ""
+
+        # NOTE: Testing things out to see how it goes before committing.
+        if system_prompt:
+            self.chat_history.append({"role": "system", "content": system_prompt})
 
         self.console = Console()
 
@@ -194,17 +199,26 @@ def main():
         type=int,
         help="The number defines how many tokens to be predict by the model. Default: infinity until [stop] token.",
     )
+    parser.add_argument(
+        "-s",
+        "--system-prompt",
+        type=str,
+        default="",  # empty by default; avoiding assumptions.
+        help="The system prompt used to orientate the model, if any.",
+    )
 
     args = parser.parse_args()
     # print(args)
     # print(f"ARG of server is {args.server}")
     # print(f"argument of bot color is {args.model_frame_color}")
+    # print(f"argument of system-prompt is {args.system_prompt}")
     chat = conchat(
         server_addr=args.server,
         top_k=args.topk,
         top_p=args.topp,
         temperature=args.temperature,
         model_frame_color=args.model_frame_color,
+        system_prompt=args.system_prompt,
     )
     chat.chat()
 
