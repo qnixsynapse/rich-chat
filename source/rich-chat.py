@@ -44,7 +44,9 @@ class ChatHistory:
         file_history_path = cache / f"{session_name}.history"
         self.session = PromptSession(history=FileHistory(file_history_path))
 
-        # Define the list for tracking chat messages
+        # Define the list for tracking chat messages.
+        # Each message is a dictionary with the following structure:
+        # {"role": "user/assistant/system", "content": "<message content>"}
         self.messages: List[Dict[str, str]] = []
         if system_message is not None:
             self.messages.append({"role": "system", "content": system_message})
