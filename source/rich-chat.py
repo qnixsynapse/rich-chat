@@ -47,9 +47,11 @@ class chathistory:
         self.session = PromptSession(history=FileHistory(file_history_path))
 
         # Set chat messages
-        self.messages = []
+        # key: role | value -> Literal one of user, assistant, system, function
+        # key: content | value -> The message associated with role as str
+        self.messages: List[Dict[str, str]] = []
         if system_message is not None:
-            self.append({"role": "system", "content": system_message})
+            self.messages.append({"role": "system", "content": system_message})
 
     def load(self) -> List[Dict[str, str]]:
         try:
@@ -81,6 +83,12 @@ class chathistory:
     def pop(self, index: int) -> Dict[str, str]:
         return self.messages.pop(index)
 
+    def replace(self, index: int, content: str) -> None:
+        try:
+            self.messages[index]["content"] = content
+        except (IndexError, KeyError) as e:
+            print(f"ChatHistoryReplace: Failed to substitute chat message: {e}")
+
     def reset(self) -> None:
         self.messages = []
 
@@ -111,6 +119,20 @@ class conchat:
         self.model_name = ""
 
         self.console = Console()
+
+        self._render_messages_once_on_start()
+
+    def _render_messages_once_on_start(self) -> None:
+        self.chat_history.load()
+        for message in self.chat_history.messages:
+            title = message["role"] if message["role"] != "user" else "HUMAN"
+            self.console.print(
+                Panel(
+                    Markdown(message["content"]),
+                    title=title.upper(),
+                    title_align="left",
+                )
+            )
 
     def chat_generator(self, prompt):
         endpoint = self.serveraddr + "/v1/chat/completions"
@@ -265,7 +287,6 @@ def main():
 
     # Defaults to Path(".") if args.chat_history is ""
     chat_history = chathistory(Path(args.chat_history), args.system_message)
-    chat_history.load()
 
     chat = conchat(
         server_addr=args.server,
