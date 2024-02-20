@@ -1,6 +1,8 @@
 import argparse
 import json
 import os
+from pathlib import Path
+from typing import Dict, List, Optional
 
 import requests
 from prompt_toolkit import PromptSession
@@ -28,8 +30,49 @@ def estimate_lines(text):
     return line_count
 
 
-def handle_console_input(session: PromptSession) -> str:
-    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True).strip()
+class chathistory:
+    def __init__(
+        self,
+        file_path: Optional[Path] = None,
+        system_message: Optional[str] = None,
+    ):
+        self.file_path = file_path
+        self.messages = []
+
+        if system_message is not None:
+            self.append({"role": "system", "content": system_message})
+
+        # TODO: Gracefully handle user input history file.
+        self.session = PromptSession(history=FileHistory(".rich-chat.history"))
+
+    def read(self) -> List[Dict[str, str]]:
+        # NOTE: raises json.JSONDecodeError on read error
+        with open(self.file_path, "r") as chat_session:
+            self.messages = json.load(chat_session)
+        return self.messages
+
+    def save(self) -> None:
+        # NOTE: raises TypeError on write error
+        with open(self.file_path, "w") as chat_session:
+            json.dump(self.messages, chat_session)
+
+    def prompt(self) -> str:
+        # Prompt the user for input
+        return self.session.prompt(
+            "(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True
+        ).strip()
+
+    def append(self, message: Dict[str, str]) -> None:
+        self.messages.append(message)
+
+    def insert(self, index: int, element: object) -> None:
+        self.messages.insert(index, element)
+
+    def pop(self, index: int) -> Dict[str, str]:
+        return self.messages.pop(index)
+
+    def reset(self) -> None:
+        self.messages = []
 
 
 class conchat:
@@ -43,7 +86,7 @@ class conchat:
         stream: bool = True,
         cache_prompt: bool = True,
         model_frame_color: str = "red",
-        system_prompt: str = "",
+        chat_history: chathistory = None,
     ) -> None:
         self.model_frame_color = model_frame_color
         self.serveraddr = server_addr
@@ -54,24 +97,17 @@ class conchat:
         self.stream = stream
         self.cache_prompt = cache_prompt
         self.headers = {"Content-Type": "application/json"}
-        self.chat_history = []
+        self.chat_history = chat_history
         self.model_name = ""
 
-        # NOTE: Testing things out to see how it goes before committing.
-        if system_prompt:
-            self.chat_history.append({"role": "system", "content": system_prompt})
-
         self.console = Console()
-
-        # TODO: Gracefully handle user input history file.
-        self.session = PromptSession(history=FileHistory(".rich-chat.history"))
 
     def chat_generator(self, prompt):
         endpoint = self.serveraddr + "/v1/chat/completions"
         self.chat_history.append({"role": "user", "content": prompt})
 
         payload = {
-            "messages": self.chat_history,
+            "messages": self.chat_history.messages,
             "temperature": self.temperature,
             "top_k": self.topk,
             "top_p": self.top_p,
@@ -155,7 +191,7 @@ class conchat:
         self.model_name = self.get_model_name()
         while True:
             try:
-                user_m = handle_console_input(self.session)
+                user_m = self.chat_history.prompt()
                 remove_lines_console(estimate_lines(text=user_m))
                 self.console.print(
                     Panel(Markdown(user_m), title="HUMAN", title_align="left")
@@ -165,6 +201,7 @@ class conchat:
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             # Adding EOFError prevents an exception and gracefully exits.
             except (KeyboardInterrupt, EOFError):
+                self.chat_history.save()
                 exit()
 
 
@@ -201,24 +238,31 @@ def main():
     )
     parser.add_argument(
         "-s",
-        "--system-prompt",
+        "--system-message",
         type=str,
         default="",  # empty by default; avoiding assumptions.
-        help="The system prompt used to orientate the model, if any.",
+        help="The system message used to orientate the model, if any.",
+    )
+    parser.add_argument(
+        "-c",
+        "--chat-history",
+        type=str,
+        default="",  # empty by default; avoiding assumptions.
+        help="The file path to the chat history, if any.",
     )
 
     args = parser.parse_args()
-    # print(args)
-    # print(f"ARG of server is {args.server}")
-    # print(f"argument of bot color is {args.model_frame_color}")
-    # print(f"argument of system-prompt is {args.system_prompt}")
+
+    chat_history = chathistory(args.chat_history, args.system_message)
+    chat_history.read()
+
     chat = conchat(
         server_addr=args.server,
         top_k=args.topk,
         top_p=args.topp,
         temperature=args.temperature,
         model_frame_color=args.model_frame_color,
-        system_prompt=args.system_prompt,
+        chat_history=chat_history,
     )
     chat.chat()
 
