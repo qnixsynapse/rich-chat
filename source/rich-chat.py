@@ -30,25 +30,21 @@ def estimate_lines(text):
     return line_count
 
 
-class chathistory:
-    def __init__(self, file_path: Path, system_message: str):
-        # Set chat file_path
-        if not file_path.exists():
-            raise FileNotFoundError(
-                f"The `file_path` parameter '{file_path}' does not exist."
-            )
-        if file_path.is_dir():
-            self.file_path = file_path / "rich-chat.json"
-        if file_path.is_file():
-            self.file_path = file_path
+class ChatHistory:
+    def __init__(self, session_name: str, system_message: str = None):
+        # Define the cache path for storing chat history
+        home = os.environ.get("HOME", ".")  # get user's home path, else assume cwd
+        cache = Path(f"{home}/.cache/rich-chat")  # set the cache path
+        cache.mkdir(parents=True, exist_ok=True)  # ensure the directory exists
 
-        # Set chat history and session
-        file_history_path = Path.cwd() / f"{self.file_path.stem}.history"
+        # Define the file path for storing chat history
+        self.file_path = cache / f"{session_name}.json"
+
+        # Define the file path for storing prompt session history
+        file_history_path = cache / f"{session_name}.history"
         self.session = PromptSession(history=FileHistory(file_history_path))
 
-        # Set chat messages
-        # key: role | value -> Literal one of user, assistant, system, function
-        # key: content | value -> The message associated with role as str
+        # Define the list for tracking chat messages
         self.messages: List[Dict[str, str]] = []
         if system_message is not None:
             self.messages.append({"role": "system", "content": system_message})
@@ -58,8 +54,9 @@ class chathistory:
             with open(self.file_path, "r") as chat_session:
                 self.messages = json.load(chat_session)
             return self.messages
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"ChatHistoryLoad: {e}")
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.save()  # create the missing file
+            print(f"ChatHistoryLoad: Created new cache: {self.file_path}")
 
     def save(self) -> None:
         try:
@@ -104,7 +101,7 @@ class conchat:
         stream: bool = True,
         cache_prompt: bool = True,
         model_frame_color: str = "red",
-        chat_history: chathistory = None,
+        chat_history: ChatHistory = None,
     ) -> None:
         self.model_frame_color = model_frame_color
         self.serveraddr = server_addr
@@ -269,24 +266,24 @@ def main():
         help="The number defines how many tokens to be predict by the model. Default: infinity until [stop] token.",
     )
     parser.add_argument(
-        "-s",
+        "-m",
         "--system-message",
         type=str,
-        default="",  # empty by default; avoiding assumptions.
+        default=None,  # empty by default; avoiding assumptions.
         help="The system message used to orientate the model, if any.",
     )
     parser.add_argument(
-        "-c",
-        "--chat-history",
+        "-n",
+        "--session-name",
         type=str,
-        default="",  # empty by default; avoiding assumptions.
-        help="The file path to the chat history, if any.",
+        default="rich-chat",
+        help="The name of the chat session. Default is 'rich-chat'.",
     )
 
     args = parser.parse_args()
 
     # Defaults to Path(".") if args.chat_history is ""
-    chat_history = chathistory(Path(args.chat_history), args.system_message)
+    chat_history = ChatHistory(args.session_name, args.system_message)
 
     chat = conchat(
         server_addr=args.server,
