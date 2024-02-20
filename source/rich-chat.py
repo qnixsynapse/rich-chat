@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import requests
 from prompt_toolkit import PromptSession
@@ -31,30 +31,40 @@ def estimate_lines(text):
 
 
 class chathistory:
-    def __init__(
-        self,
-        file_path: Optional[Path] = None,
-        system_message: Optional[str] = None,
-    ):
-        self.file_path = file_path
-        self.messages = []
+    def __init__(self, file_path: Path, system_message: str):
+        # Set chat file_path
+        if not file_path.exists():
+            raise FileNotFoundError(
+                f"The `file_path` parameter '{file_path}' does not exist."
+            )
+        if file_path.is_dir():
+            self.file_path = file_path / "rich-chat.json"
+        if file_path.is_file():
+            self.file_path = file_path
 
+        # Set chat history and session
+        file_history_path = Path.cwd() / f"{self.file_path.name}.history"
+        self.session = PromptSession(history=FileHistory(file_history_path))
+
+        # Set chat messages
+        self.messages = []
         if system_message is not None:
             self.append({"role": "system", "content": system_message})
 
-        # TODO: Gracefully handle user input history file.
-        self.session = PromptSession(history=FileHistory(".rich-chat.history"))
-
-    def read(self) -> List[Dict[str, str]]:
-        # NOTE: raises json.JSONDecodeError on read error
-        with open(self.file_path, "r") as chat_session:
-            self.messages = json.load(chat_session)
-        return self.messages
+    def load(self) -> List[Dict[str, str]]:
+        try:
+            with open(self.file_path, "r") as chat_session:
+                self.messages = json.load(chat_session)
+            return self.messages
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"ChatHistoryLoad: {e}")
 
     def save(self) -> None:
-        # NOTE: raises TypeError on write error
-        with open(self.file_path, "w") as chat_session:
-            json.dump(self.messages, chat_session)
+        try:
+            with open(self.file_path, "w") as chat_session:
+                json.dump(self.messages, chat_session, indent=2)
+        except TypeError as e:
+            print(f"ChatHistoryWrite: {e}")
 
     def prompt(self) -> str:
         # Prompt the user for input
@@ -253,8 +263,9 @@ def main():
 
     args = parser.parse_args()
 
-    chat_history = chathistory(args.chat_history, args.system_message)
-    chat_history.read()
+    # Defaults to Path(".") if args.chat_history is ""
+    chat_history = chathistory(Path(args.chat_history), args.system_message)
+    chat_history.load()
 
     chat = conchat(
         server_addr=args.server,
