@@ -7,7 +7,7 @@ from typing import Dict, List
 
 import requests
 from prompt_toolkit import PromptSession
-from prompt_toolkit.application.current import get_app
+from prompt_toolkit import prompt as input
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
 from prompt_toolkit.history import FileHistory
@@ -49,19 +49,17 @@ def key_bindings(self: "ChatHistory") -> KeyBindings:
     def _(event):
         """Copy the entire last message to the system clipboard."""
         if self.messages:
-            last_message_content = self.messages[-1]["content"]
+            last_message_content = self.messages[-1]["content"].strip()
             clipboard.set_text(last_message_content)
-            print("Entire message copied to clipboard!")
 
     @kb.add("c-s", "s")
     def _(event):
         """Copy only code snippets from the last message to the system clipboard."""
         if self.messages:
-            last_message_content = self.messages[-1]["content"]
+            last_message_content = self.messages[-1]["content"].strip()
             code_snippets = re.findall(r"```(.*?)```", last_message_content, re.DOTALL)
             snippets_content = "\n\n".join(code_snippets)
             clipboard.set_text(snippets_content)
-            print("Code snippets copied to clipboard!")
 
     return kb
 
