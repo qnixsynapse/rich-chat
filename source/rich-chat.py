@@ -1,12 +1,17 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 from typing import Dict, List
 
 import requests
 from prompt_toolkit import PromptSession
+from prompt_toolkit.application.current import get_app
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
@@ -30,6 +35,37 @@ def estimate_lines(text):
     return line_count
 
 
+# NOTE: This is isolated for now until we figure out how to appropriately handle it.
+# Doesn't feel right to just add it to `ChatHistory` without a bit of thought.
+# In either case, I expect this to grow over time even though it's currently relatively
+# simple in implementation. This allows us to avoid violating separation of concerns.
+# For example, another feature could be to add ctrl+r then r for resetting the chat
+# in-place as a means of convenience.
+def key_bindings(self: "ChatHistory") -> KeyBindings:
+    kb = KeyBindings()
+    clipboard = PyperclipClipboard()
+
+    @kb.add("c-s", "a")
+    def _(event):
+        """Copy the entire last message to the system clipboard."""
+        if self.messages:
+            last_message_content = self.messages[-1]["content"]
+            clipboard.set_text(last_message_content)
+            print("Entire message copied to clipboard!")
+
+    @kb.add("c-s", "s")
+    def _(event):
+        """Copy only code snippets from the last message to the system clipboard."""
+        if self.messages:
+            last_message_content = self.messages[-1]["content"]
+            code_snippets = re.findall(r"```(.*?)```", last_message_content, re.DOTALL)
+            snippets_content = "\n\n".join(code_snippets)
+            clipboard.set_text(snippets_content)
+            print("Code snippets copied to clipboard!")
+
+    return kb
+
+
 class ChatHistory:
     def __init__(self, session_name: str, system_message: str = None):
         # Define the cache path for storing chat history
@@ -43,6 +79,7 @@ class ChatHistory:
         # Define the file path for storing prompt session history
         file_history_path = cache / f"{session_name}.history"
         self.session = PromptSession(history=FileHistory(file_history_path))
+        self.auto_suggest = AutoSuggestFromHistory()
 
         # Define the list for tracking chat messages.
         # Each message is a dictionary with the following structure:
@@ -70,7 +107,10 @@ class ChatHistory:
     def prompt(self) -> str:
         # Prompt the user for input
         return self.session.prompt(
-            "(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True
+            "(Prompt: ⌥ + ⏎) | (Copy: ⌘ + s a|s) | (Exit: ⌘ + c):\n",
+            key_bindings=key_bindings(self),
+            auto_suggest=self.auto_suggest,
+            multiline=True,
         ).strip()
 
     def append(self, message: Dict[str, str]) -> None:
