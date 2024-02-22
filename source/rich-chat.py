@@ -3,6 +3,8 @@ import json
 import os
 
 import requests
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
@@ -26,19 +28,8 @@ def estimate_lines(text):
     return line_count
 
 
-def handle_console_input() -> str:
-    txt = ""
-    i = 1
-    while True:
-        if i == 1:
-            line = input("Enter prompt(double enter to input): ")
-            i = i + 1
-        else:
-            line = input("")
-        if not line:
-            break
-        txt = txt + line + "\n"
-    return txt.strip()
+def handle_console_input(session: PromptSession) -> str:
+    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True).strip()
 
 
 class conchat:
@@ -66,6 +57,9 @@ class conchat:
         self.model_name = ""
 
         self.console = Console()
+
+        # TODO: Gracefully handle user input history file.
+        self.session = PromptSession(history=FileHistory(".rich-chat.history"))
 
     def chat_generator(self, prompt):
         endpoint = self.serveraddr + "/v1/chat/completions"
@@ -156,17 +150,16 @@ class conchat:
         self.model_name = self.get_model_name()
         while True:
             try:
-
-                user_m = handle_console_input()
+                user_m = handle_console_input(self.session)
                 remove_lines_console(estimate_lines(text=user_m))
                 self.console.print(
                     Panel(Markdown(user_m), title="HUMAN", title_align="left")
                 )
                 self.handle_streaming(prompt=user_m)
-                print()
-                print()
 
-            except KeyboardInterrupt:
+            # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
+            # Adding EOFError prevents an exception and gracefully exits.
+            except (KeyboardInterrupt, EOFError):
                 exit()
 
 
