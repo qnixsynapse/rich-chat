@@ -36,6 +36,9 @@ class conchat:
     def __init__(
         self,
         server_addr,
+        min_p: float,
+        repeat_penalty: float,
+        seed: int,
         top_k=10,
         top_p=0.95,
         temperature=0.12,
@@ -48,6 +51,9 @@ class conchat:
         self.serveraddr = server_addr
         self.topk = top_k
         self.top_p = top_p
+        self.seed = seed
+        self.min_p = min_p
+        self.repeat_penalty = repeat_penalty
         self.temperature = temperature
         self.n_predict = n_predict
         self.stream = stream
@@ -73,6 +79,9 @@ class conchat:
             "n_predict": self.n_predict,
             "stream": self.stream,
             "cache_prompt": self.cache_prompt,
+            "seed": self.seed,
+            "repeat_penalty": self.repeat_penalty,
+            "min_p": self.min_p,
         }
         try:
             response = requests.post(
@@ -194,17 +203,35 @@ def main():
         type=int,
         help="The number defines how many tokens to be predict by the model. Default: infinity until [stop] token.",
     )
+    parser.add_argument(
+        "--minp",
+        type=float,
+        default=0.5,
+        help="The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.05).",
+    )
+    parser.add_argument(
+        "--repeat-penalty",
+        type=float,
+        default=1.1,
+        help="Control the repetition of token sequences in the generated text (default: 1.1).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=-1,
+        help="Set the random number generator (RNG) seed (default: -1, -1 = random seed).",
+    )
 
     args = parser.parse_args()
-    # print(args)
-    # print(f"ARG of server is {args.server}")
-    # print(f"argument of bot color is {args.model_frame_color}")
     chat = conchat(
         server_addr=args.server,
         top_k=args.topk,
         top_p=args.topp,
         temperature=args.temperature,
         model_frame_color=args.model_frame_color,
+        min_p=args.minp,
+        seed=args.seed,
+        repeat_penalty=args.repeat_penalty,
     )
     chat.chat()
 
