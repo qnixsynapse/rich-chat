@@ -2,3 +2,4 @@
 *.history
 *.log
 *.json
+*.pyc
