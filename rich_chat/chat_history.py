@@ -11,35 +11,6 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 
 
-# NOTE: This is isolated for now until we figure out how to appropriately handle it.
-# Doesn't feel right to just add it to `ChatHistory` without a bit of thought.
-# In either case, I expect this to grow over time even though it's currently relatively
-# simple in implementation. This allows us to avoid violating separation of concerns.
-# For example, another feature could be to add ctrl+r then r for resetting the chat
-# in-place as a means of convenience.
-def key_bindings(self: "ChatHistory") -> KeyBindings:
-    kb = KeyBindings()
-    clipboard = PyperclipClipboard()
-
-    @kb.add("c-s", "a")
-    def _(event):
-        """Copy the entire last message to the system clipboard."""
-        if self.messages:
-            last_message_content = self.messages[-1]["content"].strip()
-            clipboard.set_text(last_message_content)
-
-    @kb.add("c-s", "s")
-    def _(event):
-        """Copy only code snippets from the last message to the system clipboard."""
-        if self.messages:
-            last_message_content = self.messages[-1]["content"].strip()
-            code_snippets = re.findall(r"```(.*?)```", last_message_content, re.DOTALL)
-            snippets_content = "\n\n".join(code_snippets)
-            clipboard.set_text(snippets_content)
-
-    return kb
-
-
 class ChatHistory:
     def __init__(self, session_name: str, system_message: str = None):
         # Define the cache path for storing chat history
@@ -62,6 +33,43 @@ class ChatHistory:
         if system_message is not None:
             self.messages.append({"role": "system", "content": system_message})
 
+    @property
+    def key_bindings(self) -> KeyBindings:
+        kb = KeyBindings()
+        clipboard = PyperclipClipboard()
+
+        for i in range(9):
+
+            @kb.add("c-s", "a", str(i))
+            def _(event):
+                """Copy the entire last message to the system clipboard."""
+                if self.messages:
+                    # this doesn't auto-update. we need to re-render the toolbar somehow.
+                    self.bottom_toolbar = "Copied last message into clipboard!"
+                    # look at the last key
+                    key = int(event.key_sequence[-1].key)
+                    # look at the content with the given key
+                    # note: referenced key may not exist and can trigger a IndexError
+                    last_message_content = self.messages[-key]["content"].strip()
+                    clipboard.set_text(last_message_content)
+
+            @kb.add("c-s", "s", str(i))
+            def _(event):
+                """Copy only code snippets from the last message to the system clipboard."""
+                if self.messages:
+                    self.bottom_toolbar = (
+                        "Copied code blocks from last message into clipboard!"
+                    )
+                    key = int(event.key_sequence[-1].key)
+                    last_message_content = self.messages[-key]["content"].strip()
+                    code_snippets = re.findall(
+                        r"```(.*?)```", last_message_content, re.DOTALL
+                    )
+                    snippets_content = "\n\n".join(code_snippets)
+                    clipboard.set_text(snippets_content)
+
+        return kb
+
     def load(self) -> List[Dict[str, str]]:
         try:
             with open(self.file_path, "r") as chat_session:
@@ -81,8 +89,8 @@ class ChatHistory:
     def prompt(self) -> str:
         # Prompt the user for input
         return self.session.prompt(
-            "(Prompt: ⌥ + ⏎) | (Copy: ⌘ + s a|s) | (Exit: ⌘ + c):\n",
-            key_bindings=key_bindings(self),
+            "Prompt: (⌥ + ⏎) | Copy: ((⌘ + s) (a|s) (.[0-9])) | Exit: (⌘ + c):\n",
+            key_bindings=self.key_bindings,
             auto_suggest=self.auto_suggest,
             multiline=True,
         ).strip()
