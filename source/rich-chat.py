@@ -129,26 +129,19 @@ class conchat:
             print(f"SlotsError: {e}")
 
     def handle_streaming(self, prompt):
-        text = ""
+        text = "**>**"
         block = "█ "
         with Live(
             console=self.console,
         ) as live:
             for token in self.chat_generator(prompt=prompt):
-                # print(token)
                 if "content" in token["choices"][0]["delta"]:
                     text = text + token["choices"][0]["delta"]["content"]
                 if token["choices"][0]["finish_reason"] is not None:
-                    # finish_reason = token["choices"][0]["finish_reason"]
                     block = ""
                 markdown = Markdown(text + block)
                 live.update(
-                    Panel(
-                        markdown,
-                        title=self.model_name,
-                        title_align="left",
-                        border_style=self.model_frame_color,
-                    ),
+                    markdown,
                     refresh=True,
                 )
         self.chat_history.append({"role": "assistant", "content": text})
@@ -160,10 +153,6 @@ class conchat:
         while True:
             try:
                 user_m = handle_console_input(self.session)
-                remove_lines_console(estimate_lines(text=user_m))
-                self.console.print(
-                    Panel(Markdown(user_m), title="HUMAN", title_align="left")
-                )
                 self.handle_streaming(prompt=user_m)
 
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
