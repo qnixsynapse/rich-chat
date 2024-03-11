@@ -8,7 +8,6 @@ from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
-from rich.panel import Panel
 
 
 def remove_lines_console(num_lines):
@@ -29,7 +28,7 @@ def estimate_lines(text):
 
 
 def handle_console_input(session: PromptSession) -> str:
-    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c):\n", multiline=True).strip()
+    return session.prompt("(Prompt: ⌥ + ⏎) | (Exit: ⌘ + c): ", multiline=True).strip()
 
 
 class conchat:
@@ -129,7 +128,8 @@ class conchat:
             print(f"SlotsError: {e}")
 
     def handle_streaming(self, prompt):
-        text = "**>**"
+        self.console.print(Markdown("**>**"), end=" ")
+        text = ""
         block = "█ "
         with Live(
             console=self.console,
